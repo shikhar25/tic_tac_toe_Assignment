@@ -140,47 +140,67 @@ class HumanPlayer extends Player {
 class ComputerPlayer extends Player {
     getMove(board) {
         console.log("AI is making a move...");
-        let move = this.findWinningMove(board, this.symbol);
-        if (move !== -1) return move;
-
-        const opponentSymbol = this.symbol === 'X' ? 'O' : 'X';
-        move = this.findWinningMove(board, opponentSymbol);
-        if (move !== -1) return move;
-
-        if (board[4] === ' ') return 4;
-
-        const corners = [0, 2, 6, 8];
-        const emptyCorners = corners.filter(i => board[i] === ' ');
-        if (emptyCorners.length > 0) {
-            return emptyCorners[Math.floor(Math.random() * emptyCorners.length)];
-        }
-
-        const availableMoves = [];
-        board.forEach((cell, index) => {
-            if (cell === ' ') availableMoves.push(index);
-        });
-        return availableMoves[Math.floor(Math.random() * availableMoves.length)];
+        return this.minimax(board, this.symbol).index;
     }
 
-    findWinningMove(board, symbol) {
-        for (let i = 0; i < 9; i++) {
-            if (board[i] !== ' ') continue;
+    minimax(newBoard, player) {
+        const availableSpots = newBoard
+            .map((cell, index) => (cell === ' ' ? index : null))
+            .filter(index => index !== null);
 
-            const tempBoard = [...board];
-            tempBoard[i] = symbol;
-            const winPatterns = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8],
-                [0, 3, 6], [1, 4, 7], [2, 5, 8],
-                [0, 4, 8], [2, 4, 6]
-            ];
+        if (this.checkWinner(newBoard, 'X')) return { score: -10 };
+        if (this.checkWinner(newBoard, 'O')) return { score: 10 };
+        if (availableSpots.length === 0) return { score: 0 };
 
-            if (winPatterns.some(pattern =>
-                pattern.every(index => tempBoard[index] === symbol)
-            )) {
-                return i;
+        let moves = [];
+        for (let i = 0; i < availableSpots.length; i++) {
+            let move = {};
+            move.index = availableSpots[i];
+            newBoard[availableSpots[i]] = player;
+
+            if (player === 'O') {
+                let result = this.minimax(newBoard, 'X');
+                move.score = result.score;
+            } else {
+                let result = this.minimax(newBoard, 'O');
+                move.score = result.score;
+            }
+
+            newBoard[availableSpots[i]] = ' ';
+            moves.push(move);
+        }
+
+        let bestMove = 0;
+        if (player === 'O') {
+            let bestScore = -10000;
+            for (let i = 0; i < moves.length; i++) {
+                if (moves[i].score > bestScore) {
+                    bestScore = moves[i].score;
+                    bestMove = i;
+                }
+            }
+        } else {
+            let bestScore = 10000;
+            for (let i = 0; i < moves.length; i++) {
+                if (moves[i].score < bestScore) {
+                    bestScore = moves[i].score;
+                    bestMove = i;
+                }
             }
         }
-        return -1;
+
+        return moves[bestMove];
+    }
+
+    checkWinner(board, player) {
+        const winPatterns = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+        return winPatterns.some(pattern =>
+            pattern.every(index => board[index] === player)
+        );
     }
 }
 
